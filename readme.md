@@ -2,7 +2,7 @@
 1- log system setup
 2- cross site scripting setup
 3- version control setup
-4- 
+4- entity type and validation needs to implement
 
 # Foss-API services
 
