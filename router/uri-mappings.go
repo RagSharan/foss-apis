@@ -56,7 +56,9 @@ func voteMapping() {
 }
 func profileMapping() {
 	httpRouter.GET("/profile", profileController.GetProfile)
-	httpRouter.POST("/profile", profileController.UpdateProfile)
-	httpRouter.DELETE("/profile", profileController.ChangePic)
-	httpRouter.DELETE("/profile", profileController.UpdateCover)
+	httpRouter.POST("/profile", profileController.AddProfile)
+	httpRouter.PUT("/profile", profileController.UpdateProfile)
+	httpRouter.PUT("/profile/pic", profileController.ChangePic)
+	httpRouter.PUT("/profile/cover", profileController.UpdateCover)
+	httpRouter.DELETE("/profile", profileController.RemoveProfile)
 }

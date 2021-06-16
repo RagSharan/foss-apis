@@ -32,7 +32,7 @@ func (*postController) GetPost(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
 	data, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	post, err := postService.FindPost(data)
 	if err != nil {

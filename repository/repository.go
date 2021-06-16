@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,26 +16,27 @@ import (
 type repoMongo struct{}
 
 type IMongoRepository interface {
-	FindOne(collectionName string, kmap map[string]string) (bson.M, error)
-	FindAll(collectionName string, kmap map[string]string) ([]bson.M, error)
-	FindList(collectionName string, kmap map[string]string) ([]bson.M, error)
+	FindOne(collectionName string, kmap map[string]interface{}) (bson.M, error)
+	FindAll(collectionName string, kmap map[string]interface{}) ([]bson.M, error)
+	FindList(collectionName string, kmap map[string]interface{}) ([]bson.M, error)
 	Create(callectionName string, document interface{}) (*mongo.InsertOneResult, error)
 	CreateMany(collectionName string, document []interface{}) (*mongo.InsertManyResult, error)
-	UpdateById(collectionName string, kmap map[string]string) (*mongo.UpdateResult, error)
-	UpdateOne(collectionName string, kmap map[string]string) (*mongo.UpdateResult, error)
-	UpdateMany(collectionName string, kmap map[string]string) (*mongo.UpdateResult, error)
-	DeleteDocument(collectionName string, kmap map[string]string) (*mongo.DeleteResult, error)
+	UpdateById(collectionName string, kmap map[string]interface{}) (*mongo.UpdateResult, error)
+	UpdateOne(collectionName string, kmap map[string]interface{}) (*mongo.UpdateResult, error)
+	UpdateMany(collectionName string, kmap map[string]interface{}) (*mongo.UpdateResult, error)
+	DeleteDocument(collectionName string, kmap map[string]interface{}) (*mongo.DeleteResult, error)
 }
 
 func ObjIMongoRepository() IMongoRepository {
 	return &repoMongo{}
 }
 
-func (*repoMongo) FindOne(collectionName string, kmap map[string]string) (bson.M, error) {
+func (*repoMongo) FindOne(collectionName string, kmap map[string]interface{}) (bson.M, error) {
 	database, client := connectDB()
 	defer closeConnection(client)
 	collection := database.Collection(collectionName)
 	filter := formateFilter(kmap)
+	log.Println("repoMongo:", filter)
 	var result bson.M
 	err := collection.FindOne(context.TODO(), filter).Decode(&result)
 	if err != nil {
@@ -49,7 +51,7 @@ func (*repoMongo) FindOne(collectionName string, kmap map[string]string) (bson.M
 * curser.All will load whole collection in memory
 * suppose we have millions record then this function is going to fetch all records
 **/
-func (*repoMongo) FindAll(collectionName string, kmap map[string]string) ([]bson.M, error) {
+func (*repoMongo) FindAll(collectionName string, kmap map[string]interface{}) ([]bson.M, error) {
 	database, client := connectDB()
 	defer closeConnection(client)
 	collection := database.Collection(collectionName)
@@ -69,7 +71,7 @@ func (*repoMongo) FindAll(collectionName string, kmap map[string]string) ([]bson
 * This function will provide List of objects in form of cursor which needs to decode
 * If filter is null here it will fetch whole database
 **/
-func (*repoMongo) FindList(collectionName string, kmap map[string]string) ([]bson.M, error) {
+func (*repoMongo) FindList(collectionName string, kmap map[string]interface{}) ([]bson.M, error) {
 	database, client := connectDB()
 	defer closeConnection(client)
 	collection := database.Collection(collectionName)
@@ -110,7 +112,7 @@ func (*repoMongo) CreateMany(collectionName string, data []interface{}) (*mongo.
 }
 
 /* In this method update object will hve specific settings*/
-func (*repoMongo) UpdateById(collectionName string, kmap map[string]string) (*mongo.UpdateResult, error) {
+func (*repoMongo) UpdateById(collectionName string, kmap map[string]interface{}) (*mongo.UpdateResult, error) {
 	database, client := connectDB()
 	defer closeConnection(client)
 	collection := database.Collection(collectionName)
@@ -122,7 +124,7 @@ func (*repoMongo) UpdateById(collectionName string, kmap map[string]string) (*mo
 	return result, err
 }
 
-func (*repoMongo) UpdateOne(collectionName string, kmap map[string]string) (*mongo.UpdateResult, error) {
+func (*repoMongo) UpdateOne(collectionName string, kmap map[string]interface{}) (*mongo.UpdateResult, error) {
 	database, client := connectDB()
 	defer closeConnection(client)
 	collection := database.Collection(collectionName)
@@ -134,7 +136,7 @@ func (*repoMongo) UpdateOne(collectionName string, kmap map[string]string) (*mon
 	return result, err
 }
 
-func (*repoMongo) UpdateMany(collectionName string, kmap map[string]string) (*mongo.UpdateResult, error) {
+func (*repoMongo) UpdateMany(collectionName string, kmap map[string]interface{}) (*mongo.UpdateResult, error) {
 	database, client := connectDB()
 	defer closeConnection(client)
 	collection := database.Collection(collectionName)
@@ -146,7 +148,7 @@ func (*repoMongo) UpdateMany(collectionName string, kmap map[string]string) (*mo
 	return result, err
 }
 
-func (*repoMongo) DeleteDocument(collectionName string, kmap map[string]string) (*mongo.DeleteResult, error) {
+func (*repoMongo) DeleteDocument(collectionName string, kmap map[string]interface{}) (*mongo.DeleteResult, error) {
 	database, client := connectDB()
 	defer closeConnection(client)
 	collection := database.Collection(collectionName)
@@ -182,35 +184,52 @@ func closeConnection(client *mongo.Client) {
 	fmt.Println("Connection to MongoDB instance is closed.")
 }
 
-func formateFilter(k map[string]string) primitive.M {
+func formateUpdate(kmap map[string]interface{}) (primitive.M, []primitive.M) {
 	var filter primitive.M
-	for key, value := range k {
+	var update []primitive.M
+	i := 0
+	for key, value := range kmap {
+		if i == 0 {
+			zmap := map[string]interface{}{key: value}
+			filter = formateFilter(zmap)
+			i = 1
+			continue
+		}
+		zmap := map[string]interface{}{key: value}
+		var temp primitive.M
+		keyRecursion(&temp, &zmap)
+		final := bson.M{"$set": temp} //$set could be replaced by other methods
+		update = append(update, final)
+	}
+	return filter, update
+}
+
+func formateFilter(kmap map[string]interface{}) primitive.M {
+	var filter primitive.M
+	for key, value := range kmap {
 		if key == "_id" {
-			objId, _ := primitive.ObjectIDFromHex(value)
+			str := fmt.Sprintf("%v", value)
+			objId, _ := primitive.ObjectIDFromHex(str)
 			filter = bson.M{"_id": objId}
 		} else {
-			filter = bson.M{key: value}
+			keyRecursion(&filter, &kmap)
 		}
 	}
 	return filter
 }
 
-/*
-*First lavel of filtering and updating will work in filter and update function
- */
-func formateUpdate(k map[string]string) (primitive.M, []primitive.M) {
-	var filter primitive.M
-	var update []primitive.M
-	i := 1
-	for key, value := range k {
-		if i == 1 {
-			z := map[string]string{key: value}
-			filter = formateFilter(z)
-			i++
-			continue
+func keyRecursion(filter *primitive.M, kmap *map[string]interface{}, tempKey ...string) {
+	for key, value := range *kmap {
+		if reflect.TypeOf(value).Kind() != reflect.Map {
+			if tempKey != nil {
+				key = tempKey[0] + "." + key
+			}
+			*filter = bson.M{key: value}
+			fmt.Println(*filter)
+		} else {
+			tempKey := key
+			tempMap := value.(map[string]interface{})
+			keyRecursion(filter, &tempMap, tempKey)
 		}
-		z := bson.M{"$set": bson.M{key: value}}
-		update = append(update, z)
 	}
-	return filter, update
 }

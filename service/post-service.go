@@ -33,18 +33,17 @@ var (
 )
 
 func (*postService) FindPost(data []byte) (primitive.M, error) {
-	//filter := filterFormate(data)
 	temp := string(data)
-	kmap := make(map[string]string)
+	kmap := make(map[string]interface{})
 	json.Unmarshal([]byte(temp), &kmap)
+	log.Println("postService:", kmap)
 	result, err := mongoRepo.FindOne(CollectionName, kmap)
 	return result, err
 }
 
 func (*postService) FindPostList(data []byte) ([]primitive.M, error) {
-	//filter := filterFormate(data)
 	temp := string(data)
-	kmap := make(map[string]string)
+	kmap := make(map[string]interface{})
 	json.Unmarshal([]byte(temp), &kmap)
 	result, err := mongoRepo.FindList(CollectionName, kmap)
 	return result, err
@@ -66,7 +65,7 @@ func (*postService) CreatePostList(data []byte) (*mongo.InsertManyResult, error)
 }
 func (*postService) UpdatePost(data []byte) (*mongo.UpdateResult, error) {
 	temp := string(data)
-	kmap := make(map[string]string)
+	kmap := make(map[string]interface{})
 	json.Unmarshal([]byte(temp), &kmap)
 	result, err := mongoRepo.UpdateOne(CollectionName, kmap)
 	if err != nil {
@@ -76,7 +75,7 @@ func (*postService) UpdatePost(data []byte) (*mongo.UpdateResult, error) {
 }
 func (*postService) UpdatePostList(data []byte) (*mongo.UpdateResult, error) {
 	temp := string(data)
-	kmap := make(map[string]string)
+	kmap := make(map[string]interface{})
 	json.Unmarshal([]byte(temp), &kmap)
 	result, err := mongoRepo.UpdateMany(CollectionName, kmap)
 	if err != nil {
@@ -86,7 +85,7 @@ func (*postService) UpdatePostList(data []byte) (*mongo.UpdateResult, error) {
 }
 func (*postService) DeletePost(data []byte) (*mongo.DeleteResult, error) {
 	temp := string(data)
-	kmap := make(map[string]string)
+	kmap := make(map[string]interface{})
 	json.Unmarshal([]byte(temp), &kmap)
 	result, err := mongoRepo.DeleteDocument(CollectionName, kmap)
 	if err != nil {

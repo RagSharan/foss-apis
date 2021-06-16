@@ -1,31 +1,92 @@
 package controller
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"log"
 	"net/http"
+
+	"github.com/ragsharan/foss-apis/service"
 )
 
 type profileController struct{}
 type IProfileController interface {
-	GetProfile(response http.ResponseWriter, request *http.Request)
-	UpdateProfile(response http.ResponseWriter, request *http.Request)
-	ChangePic(response http.ResponseWriter, request *http.Request)
-	UpdateCover(response http.ResponseWriter, request *http.Request)
-	//	RemoveProfile(response http.ResponseWriter, request *http.Request)
+	GetProfile(res http.ResponseWriter, req *http.Request)
+	AddProfile(res http.ResponseWriter, req *http.Request)
+	UpdateProfile(res http.ResponseWriter, req *http.Request)
+	ChangePic(res http.ResponseWriter, req *http.Request)
+	UpdateCover(res http.ResponseWriter, req *http.Request)
+	RemoveProfile(res http.ResponseWriter, req *http.Request)
 }
 
 func ObjIProfileController() IProfileController {
 	return &profileController{}
 }
 
-func (*profileController) GetProfile(response http.ResponseWriter, request *http.Request) {
+var (
+	profileService service.IProfileService = service.InstProfileService()
+)
+
+func (*profileController) GetProfile(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	data, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	result, err := profileService.GetProfile(data)
+	if err != nil {
+		log.Println(err)
+		json.NewEncoder(res).Encode(err)
+	} else {
+		json.NewEncoder(res).Encode(result)
+	}
+}
+func (*profileController) AddProfile(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	data, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	result, err := profileService.AddProfile(data)
+	if err != nil {
+		log.Println(err)
+		json.NewEncoder(res).Encode(err)
+	} else {
+		json.NewEncoder(res).Encode(result)
+	}
+}
+func (*profileController) UpdateProfile(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	data, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	result, err := profileService.UpdateProfile(data)
+	if err != nil {
+		log.Println(err)
+		json.NewEncoder(res).Encode(err)
+	} else {
+		json.NewEncoder(res).Encode(result)
+	}
 
 }
-func (*profileController) UpdateProfile(response http.ResponseWriter, request *http.Request) {
+func (*profileController) RemoveProfile(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	data, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	result, err := profileService.RemoveProfile(data)
+	if err != nil {
+		log.Println(err)
+		json.NewEncoder(res).Encode(err)
+	} else {
+		json.NewEncoder(res).Encode(result)
+	}
+}
+func (*profileController) ChangePic(res http.ResponseWriter, req *http.Request) {
 
 }
-func (*profileController) ChangePic(response http.ResponseWriter, request *http.Request) {
-
-}
-func (*profileController) UpdateCover(response http.ResponseWriter, request *http.Request) {
+func (*profileController) UpdateCover(res http.ResponseWriter, req *http.Request) {
 
 }
